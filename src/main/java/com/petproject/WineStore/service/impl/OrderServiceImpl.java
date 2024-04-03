@@ -1,0 +1,62 @@
+package com.petproject.WineStore.service.impl;
+
+import com.petproject.WineStore.constant.ErrorMessage;
+import com.petproject.WineStore.dto.request.OrderRequest;
+import com.petproject.WineStore.model.Cart;
+import com.petproject.WineStore.model.Order;
+import com.petproject.WineStore.model.User;
+import com.petproject.WineStore.repository.OrderRepository;
+import com.petproject.WineStore.service.OrderService;
+import com.petproject.WineStore.service.UserService;
+import jakarta.transaction.Transactional;
+import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+@AllArgsConstructor
+public class OrderServiceImpl implements OrderService {
+    private final UserService userService;
+    private final OrderRepository orderRepository;
+    @Override
+    public ResponseEntity<?> getOrder(Long orderId) {
+        User user = userService.getAuthenticatedUser();
+        Order order = orderRepository.findByIdAndUserId(orderId, user.getId());
+        if (order == null) return ResponseEntity.status(HttpStatus.NOT_FOUND).
+                body(ErrorMessage.ORDER_NOT_FOUND);
+        return ResponseEntity.ok(order);
+    }
+
+    @Override
+    public Order getUserOrdersList() {
+        User user = userService.getAuthenticatedUser();
+        return orderRepository.findOrderByUserId(user.getId());
+    }
+
+    @Override
+    @Transactional
+    public Long postOrder(OrderRequest orderRequest) {
+        User user = userService.getAuthenticatedUser();
+        Order order = orderRequest.toOrder(user);
+        order.setTotalPrice(CalculationTotalPrice(order.getCarts()));
+        orderRepository.save(order);
+        user.getCarts().clear();
+//        Map<String, Object> attributes = new HashMap<>();
+//        attributes.put("order", order);
+//        mailService.sendMessageHtml(order.getEmail(), "Order #" + order.getId(), "order-template", attributes);
+        return order.getId();
+    }
+
+    private Double CalculationTotalPrice(List<Cart> carts) {
+        Double totalPrice = null;
+        for (Cart cart : carts) {
+            totalPrice += cart.getQuantity() * cart.getWine().getPrice();
+        }
+        return totalPrice;
+    }
+}
