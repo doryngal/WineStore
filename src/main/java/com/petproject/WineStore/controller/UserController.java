@@ -2,6 +2,7 @@ package com.petproject.WineStore.controller;
 
 import com.petproject.WineStore.dto.request.OrderRequest;
 import com.petproject.WineStore.dto.request.ReviewRequest;
+import com.petproject.WineStore.dto.request.UserRequest;
 import com.petproject.WineStore.dto.response.WineResponse;
 import com.petproject.WineStore.model.Order;
 import io.swagger.v3.oas.annotations.Operation;
@@ -93,4 +94,20 @@ public interface UserController {
     })
     @DeleteMapping("/review/{reviewId}")
     ResponseEntity<String> deleteReview(@PathVariable("reviewId") Long reviewId);
+
+    @Operation(summary = "Edit profile", description = "Edit user profile.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Profile successfully edited"),
+            @ApiResponse(responseCode = "403", description = "Forbidden")
+    })
+    @PutMapping("/edit-my-profile")
+    ResponseEntity<String> editProfile(@RequestBody UserRequest editProfile);
+
+    @Operation(summary = "Delete profile", description = "Delete user profile.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Profile successfully deleted"),
+            @ApiResponse(responseCode = "403", description = "Forbidden")
+    })
+    @DeleteMapping("/delete-my-profile")
+    ResponseEntity<String> deleteProfile();
 }

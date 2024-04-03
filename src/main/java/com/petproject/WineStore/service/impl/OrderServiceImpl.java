@@ -10,6 +10,8 @@ import com.petproject.WineStore.service.OrderService;
 import com.petproject.WineStore.service.UserService;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -23,12 +25,18 @@ import java.util.List;
 public class OrderServiceImpl implements OrderService {
     private final UserService userService;
     private final OrderRepository orderRepository;
+
+    private static final Logger log = LoggerFactory.getLogger(UserServiceImpl.class);
+
     @Override
     public ResponseEntity<?> getOrder(Long orderId) {
         User user = userService.getAuthenticatedUser();
         Order order = orderRepository.findByIdAndUserId(orderId, user.getId());
-        if (order == null) return ResponseEntity.status(HttpStatus.NOT_FOUND).
-                body(ErrorMessage.ORDER_NOT_FOUND);
+        if (order == null) {
+            log.error("Order not found with ID {} for user: {}", orderId, user.getUsername());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorMessage.ORDER_NOT_FOUND);
+        }
+        log.info("Order retrieved successfully with ID {} for user: {}", orderId, user.getUsername());
         return ResponseEntity.ok(order);
     }
 
@@ -46,6 +54,8 @@ public class OrderServiceImpl implements OrderService {
         order.setTotalPrice(CalculationTotalPrice(order.getCarts()));
         orderRepository.save(order);
         user.getCarts().clear();
+        log.info("Order placed successfully with ID {} for user: {}",
+                order.getId(), user.getUsername());
 //        Map<String, Object> attributes = new HashMap<>();
 //        attributes.put("order", order);
 //        mailService.sendMessageHtml(order.getEmail(), "Order #" + order.getId(), "order-template", attributes);

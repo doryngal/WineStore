@@ -9,6 +9,8 @@ import com.petproject.WineStore.model.Wine;
 import com.petproject.WineStore.repository.WineRepository;
 import com.petproject.WineStore.service.WineService;
 import lombok.AllArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -21,9 +23,12 @@ import java.util.List;
 public class WineServiceImpl implements WineService {
     private final WineRepository wineRepository;
 
+    private static final Logger log = LoggerFactory.getLogger(UserServiceImpl.class);
+
     @Override
     public ResponseEntity<String> addWine(Wine wine) {
         wineRepository.save(wine);
+        log.info("Wine added successfully with ID: {}", wine.getId());
         return ResponseEntity.ok(SuccessMessage.WINE_ADDED);
     }
 
@@ -31,18 +36,23 @@ public class WineServiceImpl implements WineService {
     public ResponseEntity<?> getWineById(Long wineId) {
         Wine wine = wineRepository.findById(wineId).orElse(null);
         if (wine == null) {
+            log.error("Wine not found with ID: {}", wineId);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorMessage.WINE_NOT_FOUND);
         }
+        log.info("Wine retrieved successfully with ID: {}", wineId);
         return ResponseEntity.ok(WineInfoResponse.toWineInfo(wine));
     }
+
     @Override
     public ResponseEntity<String> editWine(Long wineId, WineRequest wineRequest) {
         Wine wine = wineRepository.findById(wineId).orElse(null);
         if (wine == null) {
+            log.error("Wine not found with ID: {}", wineId);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorMessage.WINE_NOT_FOUND);
         }
         wine = wineRequest.toWine(wine);
         wineRepository.save(wine);
+        log.info("Wine edited successfully with ID: {}", wineId);
         return ResponseEntity.ok(SuccessMessage.WINE_EDITED);
     }
 
@@ -50,15 +60,18 @@ public class WineServiceImpl implements WineService {
     public ResponseEntity<String> deleteWine(Long wineId) {
         Wine wine = wineRepository.findById(wineId).orElse(null);
         if (wine == null) {
+            log.error("Wine not found with ID: {}", wineId);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorMessage.WINE_NOT_FOUND);
         }
         wineRepository.delete(wine);
+        log.info("Wine deleted successfully with ID: {}", wineId);
         return ResponseEntity.ok(SuccessMessage.WINE_DELETED);
     }
 
     @Override
     public ResponseEntity<List<WineResponse>> getAllWine() {
         List<Wine> wines = wineRepository.findAll();
+        log.info("Retrieved all wines, count: {}", wines.size());
         return ResponseEntity.ok(toWineResponse(wines));
     }
 
@@ -70,4 +83,5 @@ public class WineServiceImpl implements WineService {
         }
         return wineResponses;
     }
+
 }

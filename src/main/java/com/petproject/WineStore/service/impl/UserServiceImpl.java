@@ -4,6 +4,7 @@ import com.petproject.WineStore.constant.ErrorMessage;
 import com.petproject.WineStore.constant.SuccessMessage;
 import com.petproject.WineStore.dto.request.ChangePasswordRequest;
 import com.petproject.WineStore.dto.request.LoginRequest;
+import com.petproject.WineStore.dto.request.UserRequest;
 import com.petproject.WineStore.model.Role;
 import com.petproject.WineStore.model.User;
 import com.petproject.WineStore.repository.UserRepository;
@@ -29,6 +30,7 @@ import org.springframework.stereotype.Service;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 @Service
 @AllArgsConstructor
@@ -52,6 +54,7 @@ public class UserServiceImpl implements UserService {
         }
         throw new IllegalStateException(ErrorMessage.USER_NOT_AUTHENTICATED);
     }
+
     @Override
     public ResponseEntity<String> register(User user) {
         log.info("Attempting to register a user with the email: {}", user.getEmail());
@@ -96,6 +99,10 @@ public class UserServiceImpl implements UserService {
             Map<String, String> response = new HashMap<>();
             response.put("token", token);
 
+            User user = userRepository.findByEmail(loginRequest.getEmail()).orElse(null);
+            user.setActive(true);
+            userRepository.save(user);
+
             return ResponseEntity.ok(response);
         } catch (BadCredentialsException e) {
             log.error("Authentication failed: Invalid username or password for email: {}", loginRequest.getEmail());
@@ -110,15 +117,43 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public ResponseEntity<String> changePassword(ChangePasswordRequest request) {
         if (request.getPassword() != null && !request.getPassword().equals(request.getPassword2())) {
+            log.error("Passwords do not match for user: {}", getAuthenticatedUser().getUsername());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ErrorMessage.PASSWORDS_DO_NOT_MATCH);
         }
         User user = getAuthenticatedUser();
         user.setPassword(passwordEncoder.encode(request.getPassword()));
+        log.info("Password changed successfully for user: {}", user.getUsername());
         return ResponseEntity.ok(SuccessMessage.PASSWORD_CHANGED);
     }
 
-    //TODO edit user profile
+    @Override
+    public ResponseEntity<String> editProfile(UserRequest editProfile) {
+        User user = getAuthenticatedUser();
+        if (!Objects.equals(user.getEmail(), editProfile.getEmail()) ||
+                !userRepository.existsByEmail(editProfile.getEmail())) {
+            log.error("Email already in use or not matching for user: {}", user.getUsername());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ErrorMessage.EMAIL_IN_USE);
+        }
 
+        if (!Objects.equals(user.getPhoneNumber(), editProfile.getPhoneNumber()) ||
+                !userRepository.existsByPhoneNumber(editProfile.getPhoneNumber())) {
+            log.error("Phone number already in use or not matching for user: {}", user.getUsername());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ErrorMessage.PHONE_NUMBER_IN_USE);
+        }
 
-    //TODO delete user profile
+        user = editProfile.toUser(user);
+        userRepository.save(user);
+        log.info("Profile updated successfully for user: {}", user.getUsername());
+        return ResponseEntity.ok(SuccessMessage.USER_UPDATED);
+    }
+
+    @Override
+    public ResponseEntity<String> deleteProfile() {
+        User user = getAuthenticatedUser();
+        user.setActive(false);
+        userRepository.save(user);
+        log.info("User account deleted successfully for user: {}", user.getUsername());
+        return ResponseEntity.ok(SuccessMessage.USER_DELETED);
+    }
+
 }

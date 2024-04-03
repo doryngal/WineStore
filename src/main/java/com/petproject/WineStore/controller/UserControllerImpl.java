@@ -2,10 +2,12 @@ package com.petproject.WineStore.controller;
 
 import com.petproject.WineStore.dto.request.OrderRequest;
 import com.petproject.WineStore.dto.request.ReviewRequest;
+import com.petproject.WineStore.dto.request.UserRequest;
 import com.petproject.WineStore.dto.response.WineResponse;
 import com.petproject.WineStore.model.Order;
 import com.petproject.WineStore.service.OrderService;
 import com.petproject.WineStore.service.ReviewService;
+import com.petproject.WineStore.service.UserService;
 import com.petproject.WineStore.service.WineService;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.AllArgsConstructor;
@@ -19,6 +21,7 @@ import java.util.List;
 @Component
 @AllArgsConstructor
 public class UserControllerImpl implements UserController{
+    private final UserService userService;
     private final WineService wineService;
     private final OrderService orderService;
 
@@ -64,5 +67,15 @@ public class UserControllerImpl implements UserController{
     @Override
     public ResponseEntity<String> deleteReview(Long reviewId) {
         return reviewService.deleteReview(reviewId);
+    }
+
+    @Override
+    public ResponseEntity<String> editProfile(UserRequest editProfile) {
+        return userService.editProfile(editProfile);
+    }
+
+    @Override
+    public ResponseEntity<String> deleteProfile() {
+        return userService.deleteProfile();
     }
 }
